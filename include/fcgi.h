@@ -1,7 +1,8 @@
-#ifndef FCGI_H
+﻿#ifndef FCGI_H
 #define FCGI_H
 
 #include "fastcgi.h"
+#include <stdint.h>
 
 typedef struct 
 {
@@ -27,26 +28,28 @@ FCGI_Header makeHeader(int type, int request,
 FCGI_BeginRequestBody makeBeginRequestBody(int role, int keepConnection);
 
 //生成 PARAMS 的 name-value body
-int makeNameValueBody(char *name, int nameLen,
-                        char *value, int valueLen,
-                        unsigned char *bodyBuffPtr, int *bodyLen);
-
-//获取express_help.conf 配置文件中的 ip 地址
-char *getIpFromConf(void);
+int makeNameValueBody(const char *name, int nameLen,
+                        const char *value, int valueLen,
+                        char *bodyBuffPtr);
+int getNameValueBodySize(int nameLen, int valueLen);
 
 //连接php-fpm，如果成功则返回对应的套接字描述符
-void startConnect(FastCgi_t *c);
+int startConnect(FastCgi_t *c, const char* addr, uint16_t port);
 
 //发送开始请求记录
 int sendStartRequestRecord(FastCgi_t *c);
 
 //向php-fpm发送name-value参数对
-int sendParams(FastCgi_t *c, char *name, char *value);
+int sendParams(FastCgi_t *c, const char *name, const char *value);
+
+//发送post数据
+int sendPostData(FastCgi_t* c, const char* data, int size);
 
 //发送结束请求消息
 int sendEndRequestRecord(FastCgi_t *c);
 
-//只读php-fpm 返回内容，读到的内容处理后期再添加
-int readFromPhp(FastCgi_t *c);
+//读返回内容
+typedef void(*ResponseDataCallback)(const char*, int, void*);
+int readResponseData(FastCgi_t *c, ResponseDataCallback callback, void* arg);
 
 #endif

@@ -1,7 +1,7 @@
-/*
+﻿/*
  * @filename:    main.c
- * @author:      Tanswer
- * @date:        2017年12月23日 01:44:32
+ * @author:      Tanswer, WuChang
+ * @date:        2024年6月20日 21:07:00
  * @description:
  */
 
@@ -15,12 +15,12 @@ int main()
     c = (FastCgi_t *)malloc(sizeof(FastCgi_t));
     FastCgi_init(c);
     setRequestId(c,1);
-    startConnect(c);
+    startConnect(c, "127.0.0.1", 9000);
     sendStartRequestRecord(c);
     sendParams(c, "SCRIPT_FILENAME","/home/Tanswer/index.php");
     sendParams(c, "REQUEST_METHOD","GET");
     sendEndRequestRecord(c);
-    readFromPhp(c);
+    readResponseData(c, NULL, NULL);
     FastCgi_finit(c);
     return 0;
 }

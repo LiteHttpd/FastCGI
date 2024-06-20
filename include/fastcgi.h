@@ -1,4 +1,4 @@
-#ifndef FASTCGI_H
+﻿#ifndef FASTCGI_H
 #define FASTCGI_H
 
 typedef struct
@@ -17,7 +17,7 @@ typedef struct
 #define FCGI_MAX_LENGTH     0xffff
 
 //上述 FCGI_Header 长度
-#define FCGI_HEADER_LEN     8
+#define FCGI_HEADER_LEN     sizeof(FCGI_Header)
 
 //FCGI的版本
 #define FCGI_VERSION_1      1

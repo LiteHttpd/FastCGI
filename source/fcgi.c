@@ -1,4 +1,4 @@
-/*
+﻿/*
  * @filename:    fcgi.c
  * @author:      Tanswer
  * @date:        2017年12月23日 00:00:09
@@ -10,16 +10,23 @@
 
 #include <string.h>
 #include <stdio.h>
+#if !WIN32
 #include <unistd.h>
+#endif
 #include <assert.h>
+#if WIN32
+#include <winsock2.h>
+#include <windows.h>
+#else
 #include <sys/socket.h>
 #include <arpa/inet.h>
 #include <netinet/in.h>
+#endif
 #include <errno.h>
 
 
-static const int PARAMS_BUFF_LEN = 1024;    //环境参数buffer的大小
-static const int CONTENT_BUFF_LEN = 1024;   //内容buffer的大小
+#define PARAMS_BUFF_LEN 1024    //环境参数buffer的大小
+#define CONTENT_BUFF_LEN 1024   //内容buffer的大小
 
 static char *findStartHtml(char *content);
 static void getHtmlFromContent(FastCgi_t *c, char *content);
@@ -197,7 +204,7 @@ int sendParams(FastCgi_t *c, char *name, char *value)
     nameValueHeader = makeHeader(FCGI_PARAMS, c->requestId_, bodyLen, 0);
 
     int nameValueRecordLen = bodyLen + FCGI_HEADER_LEN;
-    char nameValueRecord[nameValueRecordLen];
+    char* nameValueRecord = malloc(nameValueRecordLen);
 
     /* 将头和body拷贝到一块buffer 中只需调用一次write */
     memcpy(nameValueRecord, (char *)&nameValueHeader, FCGI_HEADER_LEN);
@@ -206,6 +213,7 @@ int sendParams(FastCgi_t *c, char *name, char *value)
     rc = write(c->sockfd_, nameValueRecord, nameValueRecordLen);
     assert(rc == nameValueRecordLen);
 
+    free(nameValueRecord);
     return 1;
 }
 

@@ -1,0 +1,104 @@
+﻿cmake_minimum_required (VERSION 3.15)
+
+project (FastCGI VERSION 1.0.0 LANGUAGES CXX C)
+
+if (NOT CMAKE_BUILD_TYPE)
+    set (CMAKE_BUILD_TYPE "Release"  CACHE STRING "Choose the type of build." FORCE)
+endif (NOT CMAKE_BUILD_TYPE)
+
+set (CMAKE_CXX_STANDARD 20)
+set (CMAKE_CXX_EXTENSIONS OFF)
+set (CMAKE_CXX_STANDARD_REQUIRED ON)
+set (CMAKE_C_STANDARD 11)
+set (CMAKE_C_EXTENSIONS OFF)
+set (CMAKE_C_STANDARD_REQUIRED ON)
+
+set (CMAKE_MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>DLL")
+
+if (MSVC)
+    add_compile_definitions ("_CRT_SECURE_NO_WARNINGS")
+endif (MSVC)
+
+if (WIN32)
+	set (COMPILE_SYS_DEF "WIN32=1")
+elseif (UNIX AND NOT APPLE)
+	set (COMPILE_SYS_DEF "LINUX=1")
+elseif (APPLE)
+	set (COMPILE_SYS_DEF "DARWIN=1")
+endif ()
+
+# Prepare Install
+include (GNUInstallDirs)
+include (CMakePackageConfigHelpers)
+
+set (FASTCGI_INSTALL_NAME ${PROJECT_NAME})
+
+# Source
+file (GLOB_RECURSE FASTCGI_SRC CONFIGURE_DEPENDS "./source/*.cpp" "./source/*.c" "./source/*.rc")
+
+# Target
+add_library (fastcgi STATIC ${FASTCGI_SRC})
+add_library (${FASTCGI_INSTALL_NAME}::fastcgi ALIAS fastcgi)
+target_include_directories (fastcgi PUBLIC
+	"$<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>"
+    "$<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}/${FASTCGI_INSTALL_NAME}/include>")
+target_compile_definitions (fastcgi PRIVATE ${COMPILE_SYS_DEF})
+target_compile_definitions (fastcgi PRIVATE
+	"PROJECT_VERSION_MAJOR=${PROJECT_VERSION_MAJOR}"
+	"PROJECT_VERSION_MINOR=${PROJECT_VERSION_MINOR}"
+	"PROJECT_VERSION_PATCH=${PROJECT_VERSION_PATCH}"
+)
+
+if (NOT MSVC)
+	target_compile_options (fastcgi PRIVATE
+		-pthread -fPIC)
+endif (NOT MSVC)
+if (WIN32)
+    target_link_libraries (fastcgi PRIVATE Dbghelp)
+endif (WIN32)
+if (MSVC)
+	target_link_options (fastcgi PRIVATE 
+		/SUBSYSTEM:CONSOLE
+	)
+endif (MSVC)
+
+# Install
+set (FASTCGI_CMAKE_CONFIG_INSTALL_DIR ${CMAKE_INSTALL_LIBDIR}/cmake/${FASTCGI_INSTALL_NAME})
+
+install (TARGETS fastcgi
+	EXPORT ${FASTCGI_INSTALL_NAME}Targets
+	RUNTIME DESTINATION "${CMAKE_INSTALL_BINDIR}" OPTIONAL
+	LIBRARY DESTINATION "${CMAKE_INSTALL_LIBDIR}" OPTIONAL
+	ARCHIVE DESTINATION "${CMAKE_INSTALL_LIBDIR}" OPTIONAL
+)
+
+file (GLOB_RECURSE FASTCGI_HDR_FILES RELATIVE ${CMAKE_CURRENT_SOURCE_DIR} "include/*.h")
+foreach (HDR_FILE ${FASTCGI_HDR_FILES})
+	get_filename_component (HDR_DIR ${HDR_FILE} DIRECTORY)
+	install (FILES "${CMAKE_CURRENT_SOURCE_DIR}/${HDR_FILE}" DESTINATION "${CMAKE_INSTALL_INCLUDEDIR}/${FASTCGI_INSTALL_NAME}/${HDR_DIR}" OPTIONAL)
+endforeach ()
+
+write_basic_package_version_file (
+	"${CMAKE_CURRENT_BINARY_DIR}/${FASTCGI_INSTALL_NAME}ConfigVersion.cmake"
+	VERSION ${PROJECT_VERSION}
+	COMPATIBILITY AnyNewerVersion
+)
+
+configure_package_config_file (
+	"${CMAKE_CURRENT_LIST_DIR}/${FASTCGI_INSTALL_NAME}Config.cmake.in"
+	"${CMAKE_CURRENT_BINARY_DIR}/${FASTCGI_INSTALL_NAME}Config.cmake"
+	INSTALL_DESTINATION ${FASTCGI_CMAKE_CONFIG_INSTALL_DIR}
+	NO_CHECK_REQUIRED_COMPONENTS_MACRO
+)
+
+install (FILES
+	"${CMAKE_CURRENT_BINARY_DIR}/${FASTCGI_INSTALL_NAME}Config.cmake"
+	"${CMAKE_CURRENT_BINARY_DIR}/${FASTCGI_INSTALL_NAME}ConfigVersion.cmake"
+	DESTINATION ${FASTCGI_CMAKE_CONFIG_INSTALL_DIR}
+)
+
+install (EXPORT ${FASTCGI_INSTALL_NAME}Targets
+	FILE "${FASTCGI_INSTALL_NAME}Targets.cmake"
+	NAMESPACE ${FASTCGI_INSTALL_NAME}::
+	DESTINATION ${FASTCGI_CMAKE_CONFIG_INSTALL_DIR}
+)

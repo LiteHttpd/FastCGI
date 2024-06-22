@@ -11,6 +11,7 @@
 #include <string.h>
 #include <stdio.h>
 #include <assert.h>
+#include <stdlib.h>
 #if WIN32
 #include <winsock2.h>
 #include <windows.h>
@@ -158,7 +159,9 @@ int startConnect(FastCgi_t *c, const char* addr, uint16_t port)
     struct sockaddr_in server_address;
 
     int sockfd = socket(AF_INET, SOCK_STREAM, 0);
-    assert(sockfd > 0);
+    if (sockfd <= 0) {
+        return 0;
+    }
 
     memset(&server_address, 0, sizeof(server_address));
 
@@ -167,7 +170,7 @@ int startConnect(FastCgi_t *c, const char* addr, uint16_t port)
     server_address.sin_port = htons(port);
 
     int rc = connect(sockfd, (struct sockaddr *)&server_address, sizeof(server_address));
-    assert(rc >= 0);
+    if (rc < 0) { return 0; }
 
     c -> sockfd_ = sockfd;
     return sockfd;
@@ -242,7 +245,7 @@ int readResponseData(FastCgi_t* c, ResponseDataCallback callback, void* arg)
 {
     /* 先将头部 8 个字节读出来 */
     FCGI_Header responderHeader;
-    while(FCGI_Read(c->sockfd_, &responderHeader, FCGI_HEADER_LEN) > 0){
+    while(FCGI_Read(c->sockfd_, (char*)&responderHeader, FCGI_HEADER_LEN) > 0) {
         if(responderHeader.type == FCGI_STDOUT){
             /* 获取内容长度 */
             int contentLen = (responderHeader.contentLengthB1 << 8) + (responderHeader.contentLengthB0);
@@ -251,7 +254,7 @@ int readResponseData(FastCgi_t* c, ResponseDataCallback callback, void* arg)
 
             /* 读取获取内容 */
             int ret = FCGI_Read(c->sockfd_, content, contentLen);
-            assert(ret == contentLen);
+            //assert(ret == contentLen);
 
             if (callback) {
                 callback(content, contentLen, arg);
@@ -263,7 +266,7 @@ int readResponseData(FastCgi_t* c, ResponseDataCallback callback, void* arg)
             for (int i = 0; i < responderHeader.paddingLength; i++) {
                 char tmp = 0;
                 int ret = FCGI_Read(c->sockfd_, &tmp, 1);
-                assert(ret == 1);
+                //assert(ret == 1);
             }
         } //end of type FCGI_STDOUT
         else if(responderHeader.type == FCGI_STDERR){
@@ -272,7 +275,7 @@ int readResponseData(FastCgi_t* c, ResponseDataCallback callback, void* arg)
             memset(content, 0, contentLen);
 
             int ret = FCGI_Read(c->sockfd_, content, contentLen);
-            assert(ret == contentLen);
+            //assert(ret == contentLen);
 
             // Error Output
 
@@ -282,14 +285,14 @@ int readResponseData(FastCgi_t* c, ResponseDataCallback callback, void* arg)
             for (int i = 0; i < responderHeader.paddingLength; i++) {
                 char tmp = 0;
                 int ret = FCGI_Read(c->sockfd_, &tmp, 1);
-                assert(ret == 1);
+                //assert(ret == 1);
             }
         }// end of type FCGI_STDERR 
         else if(responderHeader.type == FCGI_END_REQUEST){
             FCGI_EndRequestBody endRequest;
 
-            int ret = FCGI_Read(c->sockfd_, &endRequest, sizeof(endRequest));
-            assert(ret == sizeof(endRequest));
+            int ret = FCGI_Read(c->sockfd_, (char*)&endRequest, sizeof(endRequest));
+            //assert(ret == sizeof(endRequest));
         }
     }
 

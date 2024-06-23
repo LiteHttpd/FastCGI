@@ -41,6 +41,7 @@ int sendStartRequestRecord(FastCgi_t *c);
 
 //向php-fpm发送name-value参数对
 int sendParams(FastCgi_t *c, const char *name, const char *value);
+int sendEmptyParams(FastCgi_t* c);
 
 //发送post数据
 int sendPostData(FastCgi_t* c, const char* data, int size);

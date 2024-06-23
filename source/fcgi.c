@@ -211,6 +211,15 @@ int sendParams(FastCgi_t *c, const char *name, const char *value)
     return rc == nameValueRecordLen;
 }
 
+int sendEmptyParams(FastCgi_t* c) {
+    FCGI_Header nameValueHeader;
+    nameValueHeader = makeHeader(FCGI_PARAMS, c->requestId_, 0, 0);
+
+    int rc = FCGI_Write(c->sockfd_, (const char*)&nameValueHeader, FCGI_HEADER_LEN);
+
+    return rc == FCGI_HEADER_LEN;
+}
+
 int sendPostData(FastCgi_t* c, const char* data, int size) {
     FCGI_Header dataHeader;
     dataHeader = makeHeader(FCGI_STDIN, c->requestId_, size, 0);
